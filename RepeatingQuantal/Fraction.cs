@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace RepeatingQuantal
+﻿namespace RepeatingQuantal
 {
-    class Fraction
+    internal class Fraction
     {
-        int Numerator { get; set; }
-        int Denominator { get; set; }
+        private int Numerator { get; set; }
+
+        private int Denominator { get; set; }
     }
 }

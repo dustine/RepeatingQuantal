@@ -1,18 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace RepeatingQuantal
 {
@@ -21,10 +9,16 @@ namespace RepeatingQuantal
     /// </summary>
     public partial class MainWindow : Window
     {
-        ObservableCollection<Fraction> Fractions { get; set; } 
+        private ObservableCollection<int> Primes { get; set; }
+
+        private ObservableCollection<Fraction> Fractions { get; set; }
+
         public MainWindow()
         {
             InitializeComponent();
+            //MessageBox.Show(AdditionalMath.MultiplicativeOrder(10, 21).ToString());
+            Primes = new ObservableCollection<int>(AdditionalMath.PrimesTo((int)Math.Pow(2, 16)));
+            GraphListBox.ItemsSource = Primes;
         }
     }
 }
