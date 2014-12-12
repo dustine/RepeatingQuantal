@@ -1,37 +1,14 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Numerics;
 
 namespace RepeatingQuantal
 {
-    public class AdditionalMath
+    public static class AdditionalMath
     {
-        #region Singleton usage AdditionalMath.Instance
-
-        private static readonly AdditionalMath mInstance = new AdditionalMath();
-
-        static AdditionalMath()
-        {
-        }
-
-        private AdditionalMath()
-        {
-        }
-
-        public static AdditionalMath Instance { get { return mInstance; } }
-
-        #endregion Singleton usage AdditionalMath.Instance
-
-        public static List<List<int>> FactorsTo(int n)
-        {
-            var primes = PrimesTo(n).AsReadOnly();
-            return Enumerable.Range(1, n)
-                             .Select(i => FactorsOf(i, primes))
-                             .ToList();
-        }
+        private static IDictionary<Tuple<int, int>, int> _prevMO = new Dictionary<Tuple<int, int>, int>();
 
         /// <summary>
         /// Greatest common divider, using the Euclidian Algorithm
@@ -50,6 +27,44 @@ namespace RepeatingQuantal
             }
         }
 
+        public static Tuple<int, int> GetRepeatingDecimalLength(int nBase, int number, bool hasMemory = false)
+        {
+            return GetRepeatingDecimalLength(nBase, number, PrimeFactorsOf(number), hasMemory);
+        }
+
+        public static Tuple<int, int> GetRepeatingDecimalLength(int nBase, int number,
+                    IEnumerable<int> factors, bool hasMemory = false)
+        {
+            var baseFactors = PrimeFactorsOf(nBase).Distinct();
+            var eFactors = factors as IList<int> ?? factors.ToList();
+            var factorList = eFactors.Distinct().ToDictionary(k => k, v => eFactors.Count(w => w == v));
+
+            // transient: the non-repeating tidbit in the start!
+            var notCoprimes = factorList.Where(kv => baseFactors.Contains(kv.Key)).ToList();
+            var transient = 0;
+            if (notCoprimes.Any())
+            {
+                transient = notCoprimes.Max(kv => kv.Value);
+            }
+
+            // period: the length of the repeating decimal
+            var coprimes = factorList.Where(kv => !baseFactors.Contains(kv.Key)).ToList();
+            var period = 0;
+            if (!coprimes.Any()) return Tuple.Create(transient, period);
+            if (hasMemory)
+            {
+                period = coprimes.Select(kv => StoringMultiplicativeOrder(nBase, (int)Math.Pow(kv.Key, kv.Value)))
+                                 .Aggregate(Lcm);
+            }
+            else
+            {
+                period = coprimes.Select(kv => MultiplicativeOrder(nBase, (int)Math.Pow(kv.Key, kv.Value)))
+                                 .Aggregate(Lcm);
+            }
+
+            return Tuple.Create(transient, period);
+        }
+
         /// <summary>
         /// Least common multiple
         /// </summary>
@@ -61,38 +76,47 @@ namespace RepeatingQuantal
             return ((System.Math.Abs(a)) / Gcd(a, b)) * System.Math.Abs(b);
         }
 
-        public static int MultiplicativeOrder(int numBase, int modulo)
+        public static IEnumerable<int> PrimeFactorsOf(int n, IEnumerable<int> primes)
         {
-            if (Gcd(numBase, modulo) != 1) throw new ArgumentException();
-            for (var i = 1; i < modulo; i++)
+            var result = new List<int>();
+            var rest = n;
+            var limitedPrimes = primes.TakeWhile(p => p <= n);
+            var enumerable = limitedPrimes as IList<int> ?? limitedPrimes.ToList();
+            foreach (var prime in enumerable)
             {
-                if (BigInteger.ModPow(numBase, i, modulo).Equals(1)) return i;
+                if (rest == 1) break;
+                while (rest % prime == 0)
+                {
+                    result.Add(prime);
+                    rest /= prime;
+                }
             }
-            throw new ArgumentException();
+            return result.DefaultIfEmpty(n);
         }
 
-        /*  easiest way:
-         *      when number is requested
-         *      get factors for X, store them;
-         *      determine if X is prime (common in all bases)
-         */
+        /// <summary>
+        /// More effective than PrimeFactorsOf(int n, IEnumerable primes);
+        /// </summary>
+        /// <param name="n"></param>
+        /// <returns></returns>
+        public static IEnumerable<int> PrimeFactorsOf(int n)
+        {
+            var result = new List<int>();
+            if (n == 1) return result;
+            var rest = n;
+            foreach (var i in Enumerable.Range(2, n - 1))
+            {
+                if (rest == 1) break;
+                while (rest % i == 0)
+                {
+                    result.Add(i);
+                    rest /= i;
+                }
+            }
+            return result.DefaultIfEmpty(n);
+        }
 
-        /*  That basic sieve:
-         * 
-         *  Input: an integer n > 1
-         *
-         *  Let A be an array of Boolean values, indexed by integers 2 to n,
-         *  initially all set to true.
-         *
-         *      for i = 2, 3, 4, ..., not exceeding √n:
-         *      if A[i] is true:
-         *      for j = i^2, i^2+i, i^2+2i, ..., not exceeding n :
-         *          A[j] := false
-         *
-         *  Output: all i such that A[i] is true.
-         */
-
-        public static List<int> PrimesTo(int n)
+        public static IEnumerable<int> PrimesTo(int n)
         {
             var isPrime = new BitArray(n, true);
             var limit = System.Math.Sqrt(n);
@@ -106,9 +130,45 @@ namespace RepeatingQuantal
             return Enumerable.Range(1, n).Where(i => isPrime[i - 1]).ToList();
         }
 
-        private static List<int> FactorsOf(int i, ReadOnlyCollection<int> primes)
+        private static int MultiplicativeOrder(int nBase, int modulo)
         {
-            throw new NotImplementedException();
+            //Debug.Assert(Gcd(nBase, modulo) == 1,"Modulo isn't coprime to nBase");
+            for (var i = 1; i < modulo; i++)
+            {
+                if (BigInteger.ModPow(nBase, i, modulo).Equals(1)) return i;
+            }
+            throw new ArgumentException("Invalid modulo");
         }
+
+        private static int StoringMultiplicativeOrder(int nBase, int modulo)
+        {
+            int value;
+            if (!_prevMO.TryGetValue(Tuple.Create(nBase, modulo), out value))
+            {
+                _prevMO.Add(Tuple.Create(nBase, modulo), MultiplicativeOrder(nBase, modulo));
+            }
+            return value;
+        }
+
+        /*  easiest way:
+         *      when number is requested
+         *      get factors for X, store them;
+         *      determine if X is prime (common in all bases)
+         */
+
+        /*  That basic sieve:
+         *
+         *  Input: an integer n > 1
+         *
+         *  Let A be an array of Boolean values, indexed by integers 2 to n,
+         *  initially all set to true.
+         *
+         *      for n = 2, 3, 4, ..., not exceeding √n:
+         *      if A[n] is true:
+         *      for j = n^2, n^2+n, n^2+2i, ..., not exceeding n :
+         *          A[j] := false
+         *
+         *  Output: all n such that A[n] is true.
+         */
     }
 }

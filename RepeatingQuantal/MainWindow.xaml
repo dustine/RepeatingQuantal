@@ -2,34 +2,56 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:RepeatingQuantal"
+        xmlns:data="clr-namespace:RepeatingQuantal.Data"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d" x:Class="RepeatingQuantal.MainWindow"
-        Title="MainWindow"
-        DataContext="{Binding RelativeSource={RelativeSource Self}}"
+        Title="FractionData"
         Height="500" Width="350">
-    <Grid x:Name="grid">
+    <Window.Resources>
+        <data:Main x:Key="MainWindow"/>
+    </Window.Resources>
+    <Window.DataContext>
+        <!--<DataContext="{Binding RelativeSource={RelativeSource Self}}"/>-->
+        <Binding Source="{StaticResource MainWindow}"/>
+    </Window.DataContext>
+    <Grid Focusable="True">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
+            <RowDefinition Height="3*"/>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto" />
+            <RowDefinition MaxHeight="10" />
         </Grid.RowDefinitions>
-        <GroupBox Header="Options" HorizontalAlignment="Right" Margin="10" VerticalAlignment="Top">
+        <GroupBox Grid.Row="1" Margin="10,0" Header="Settings" Padding="3,5" VerticalAlignment="Bottom">
             <StackPanel Orientation="Vertical">
-                <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-                    <TextBlock Margin="0,0,5,0"><Run Text="Base:" /></TextBlock>
-                    <TextBox HorizontalAlignment="Left" TextWrapping="Wrap" Text="10" VerticalAlignment="Top" Width="30" TextAlignment="Right" />
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0">
+                    <Label Target="{Binding ElementName=BaseTextBox, Mode=OneWay}" Content="_Base:" VerticalAlignment="Center"/>
+                    <TextBox x:Name="BaseTextBox" TextWrapping="Wrap" Text="{Binding Base, Mode=TwoWay, ValidatesOnDataErrors=True}" TextAlignment="Right" VerticalAlignment="Center" Width="32"/>
                 </StackPanel>
-                <CheckBox Content="Only primes" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,5,0,0" />
             </StackPanel>
         </GroupBox>
-        <ListBox x:Name="GraphListBox" Height="304" Grid.Row="1">
-            <!--
-                <ListView.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel>
-                            <TextBlock ></TextBlock>
-                        </StackPanel>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-                -->
+        <Button x:Name="GenerateButton" Grid.Row="2" Width="80" HorizontalAlignment="Center" IsDefault="True" Height="20" Grid.ColumnSpan="2" VerticalAlignment="Center" Margin="0,10,0,5" Click="GenerateButton_Click">
+            _Go
+        </Button>
+        <GroupBox Header="Filters" Padding="3,5" Grid.Column="1" Grid.Row="1" Margin="10,0">
+            <StackPanel Orientation="Vertical" Margin="0,3,0,0">
+                <CheckBox Content="Only primes" HorizontalAlignment="Left" VerticalAlignment="Top" />
+            </StackPanel>
+        </GroupBox>
+        <ListBox x:Name="GraphListBox" Height="304" Grid.Row="3" ItemsSource="{Binding Fractions}" Grid.ColumnSpan="2"
+                 Grid.Column="0">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel>
+                        <TextBlock Text="{Binding}"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
         </ListBox>
+        <ProgressBar x:Name="GeneratingNumbersProgressBar" Value="50" Maximum="10000" Grid.Row="4" Grid.ColumnSpan="2" MinHeight="2" />
+        <TextBlock HorizontalAlignment="Center"  TextWrapping="Wrap" Text="Repeating Quantal" VerticalAlignment="Center" Grid.ColumnSpan="2" FontSize="24"/>
     </Grid>
 </Window>
